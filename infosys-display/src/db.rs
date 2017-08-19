@@ -3,6 +3,7 @@ extern crate postgres;
 
 use self::postgres::Connection;
 use self::postgres::TlsMode;
+use self::postgres::tls::native_tls::NativeTls;
 
 static SQL_CREATE_SCHEDULE: &'static str = "CREATE TABLE schedule (
     timeslot        TIME NOT NULL PRIMARY KEY,
@@ -31,7 +32,11 @@ INSERT INTO schedule (timeslot, message_id) VALUES ('00:00:00', 0);
 INSERT INTO strings (id, message_id, mode, data) VALUES (1, 0, 'STANDARD_HOLD', 'Welcome to CSH!');";
 
 pub fn db_init(settings: &config::Config) ->Connection{
-    let con = Connection::connect(settings.get_str("dbstring").unwrap(), TlsMode::None).unwrap();
+    let negotiator = NativeTls::new().unwrap();
+    let con = Connection::connect(
+                settings.get_str("dbstring").unwrap(),
+                TlsMode::Require(&negotiator)
+    ).unwrap();
 
     let mut init = true;
     init = init && check_or_create_db(&con, "messages", SQL_CREATE_MESSAGE);
